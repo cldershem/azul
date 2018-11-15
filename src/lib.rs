@@ -63,61 +63,59 @@
     html_logo_url = "https://raw.githubusercontent.com/maps4print/azul/master/assets/images/azul_logo_full_min.svg.png",
     html_favicon_url = "https://raw.githubusercontent.com/maps4print/azul/master/assets/images/favicon.ico",
 )]
-
 #![deny(unused_must_use)]
 #![deny(unreachable_patterns)]
 #![deny(missing_copy_implementations)]
 #![allow(dead_code)]
 
+pub extern crate gleam;
 #[cfg_attr(feature = "svg", macro_use)]
 pub extern crate glium;
-pub extern crate gleam;
 
 #[macro_use]
 extern crate lazy_static;
-extern crate euclid;
-extern crate webrender;
-extern crate simplecss;
-extern crate rusttype;
 extern crate app_units;
-extern crate unicode_normalization;
-extern crate tinyfiledialogs;
 extern crate clipboard2;
+extern crate euclid;
 extern crate font_loader;
+extern crate rusttype;
+extern crate simplecss;
+extern crate tinyfiledialogs;
+extern crate unicode_normalization;
+extern crate webrender;
 
+#[cfg(feature = "logging")]
+extern crate backtrace;
+#[cfg(feature = "logging")]
+extern crate fern;
+#[cfg(feature = "image_loading")]
+extern crate image;
 #[cfg(feature = "logging")]
 #[cfg_attr(feature = "logging", macro_use)]
 extern crate log;
 #[cfg(feature = "svg")]
-extern crate stb_truetype;
-#[cfg(feature = "logging")]
-extern crate fern;
-#[cfg(feature = "logging")]
-extern crate backtrace;
-#[cfg(feature = "image_loading")]
-extern crate image;
+extern crate lyon;
 #[cfg(feature = "serde_serialization")]
 #[cfg_attr(feature = "serde_serialization", macro_use)]
 extern crate serde;
 #[cfg(feature = "svg")]
-extern crate lyon;
-#[cfg(feature = "svg_parsing")]
-extern crate usvg;
+extern crate stb_truetype;
 #[cfg(feature = "faster-hashing")]
 extern crate twox_hash;
-
-#[cfg(not(target_os = "linux"))]
-extern crate nfd;
+#[cfg(feature = "svg_parsing")]
+extern crate usvg;
 
 #[macro_use]
 mod macros;
 
 /// Global application state, wrapping resources and app state
 pub mod app;
-/// Wrapper for the application data & application state
-pub mod app_state;
 /// Font & image resource handling, lookup and caching
 pub mod app_resources;
+/// Wrapper for the application data & application state
+pub mod app_state;
+/// CSS parsing and styling module
+pub mod css;
 /// Daemon / timer system
 pub mod daemon;
 /// Handles default callbacks (such as an automatic text field update) via unsafe code
@@ -144,39 +142,39 @@ pub mod widgets;
 pub mod window;
 /// Window state handling, event filtering
 pub mod window_state;
-/// CSS parsing and styling module
-pub mod css;
 
-/// UI Description & display list handling (webrender)
-mod ui_description;
-/// Converts the UI description (the styled HTML nodes)
-/// to an actual display list (+ layout)
-mod display_list;
-/// CSS parser
-mod css_parser;
-/// Slab allocator for nodes, based on IDs (replaces kuchiki + markup5ever)
-mod id_tree;
-/// State handling for user interfaces
-mod ui_state;
 /// Dom / CSS caching
 mod cache;
-/// Image handling
-mod images;
 /// The compositor takes all textures (user-defined + the UI texture(s)) and draws them on
 /// top of each other
 mod compositor;
+/// CSS parser
+mod css_parser;
+/// Converts the UI description (the styled HTML nodes)
+/// to an actual display list (+ layout)
+mod display_list;
+/// Slab allocator for nodes, based on IDs (replaces kuchiki + markup5ever)
+mod id_tree;
+/// Image handling
+mod images;
 /// Default logger, can be turned off with `feature = "logging"`
 #[cfg(feature = "logging")]
 mod logging;
+/// UI Description & display list handling (webrender)
+mod ui_description;
 /// Flexbox-based UI solver
 mod ui_solver;
+/// State handling for user interfaces
+mod ui_state;
 
 // Faster implementation of a HashMap (optional, disabled by default, turn on with --feature="faster-hashing")
 
 #[cfg(feature = "faster-hashing")]
-type FastHashMap<T, U> = ::std::collections::HashMap<T, U, ::std::hash::BuildHasherDefault<::twox_hash::XxHash>>;
+type FastHashMap<T, U> =
+    ::std::collections::HashMap<T, U, ::std::hash::BuildHasherDefault<::twox_hash::XxHash>>;
 #[cfg(feature = "faster-hashing")]
-type FastHashSet<T> = ::std::collections::HashSet<T, ::std::hash::BuildHasherDefault<::twox_hash::XxHash>>;
+type FastHashSet<T> =
+    ::std::collections::HashSet<T, ::std::hash::BuildHasherDefault<::twox_hash::XxHash>>;
 #[cfg(not(feature = "faster-hashing"))]
 type FastHashMap<T, U> = ::std::collections::HashMap<T, U>;
 #[cfg(not(feature = "faster-hashing"))]
@@ -185,46 +183,46 @@ type FastHashSet<T> = ::std::collections::HashSet<T>;
 /// Quick exports of common types
 pub mod prelude {
     pub use app::{App, AppConfig};
+    pub use app_resources::AppResources;
     pub use app_state::AppState;
     pub use cache::DomHash;
-    pub use css::{Css, NATIVE_CSS, CssRule, CssDeclaration, DynamicCssProperty, DynamicCssPropertyDefault};
-    pub use dom::{
-        Dom, NodeType, NodeData, Callback, On,
-        UpdateScreen, Texture, GlTextureCallback,
-        IFrameCallback
+    pub use css::{
+        Css, CssDeclaration, CssRule, DynamicCssProperty, DynamicCssPropertyDefault, NATIVE_CSS,
     };
-    pub use traits::{Layout, Modify};
-    pub use window::{MonitorIter, Window, WindowCreateOptions, WindowId,
-                     MouseMode, UpdateBehaviour, UpdateMode, HidpiAdjustedBounds,
-                     WindowMonitorTarget, RendererType, WindowEvent, WindowInfo, ReadOnlyWindow};
-    pub use window_state::{WindowState, KeyboardState, MouseState, DebugState};
-    pub use images::{ImageType, ImageId};
-    pub use text_cache::{TextCache, TextId};
     pub use css_parser::{
-        StyleBackgroundColor, StyleTextColor, StyleBackground, StyleFontSize,
-        StyleFontFamily, StyleTextAlignmentHorz, StyleTextAlignmentVert, StyleBorderRadius,
-        StyleBoxShadow, BoxShadowPreDisplayItem, StyleLineHeight, StyleLetterSpacing,
-        StyleBorder, StyleBorderSide,
-
-        LayoutWidth, LayoutHeight, LayoutMinWidth, LayoutMinHeight, LayoutMaxWidth, CssMetric,
-        LayoutMaxHeight, LayoutWrap, LayoutDirection, LayoutJustifyContent, LayoutAlignItems,
-        LayoutAlignContent, LayoutTop, LayoutBottom, LayoutRight, LayoutLeft, LayoutPadding, LayoutMargin,
-
-        LinearGradientPreInfo, RadialGradientPreInfo, CssImageId, FontId, CssColor,
-        TextOverflowBehaviour, TextOverflowBehaviourInner, ParsedCssProperty,
-        LayoutPixel, TypedSize2D, BoxShadowClipMode, ColorU, ColorF, LayoutVector2D,
-        Gradient, RadialGradient, LayoutPoint, LayoutSize, Au, BorderDetails,
-        ExtendMode, PixelValue, PercentageValue, SideOffsets2D,
+        Au, BorderDetails, BoxShadowClipMode, BoxShadowPreDisplayItem, ColorF, ColorU, CssColor,
+        CssImageId, CssMetric, ExtendMode, FontId, Gradient, LayoutAlignContent, LayoutAlignItems,
+        LayoutBottom, LayoutDirection, LayoutHeight, LayoutJustifyContent, LayoutLeft,
+        LayoutMargin, LayoutMaxHeight, LayoutMaxWidth, LayoutMinHeight, LayoutMinWidth,
+        LayoutPadding, LayoutPixel, LayoutPoint, LayoutRight, LayoutSize, LayoutTop,
+        LayoutVector2D, LayoutWidth, LayoutWrap, LinearGradientPreInfo, ParsedCssProperty,
+        PercentageValue, PixelValue, RadialGradient, RadialGradientPreInfo, SideOffsets2D,
+        StyleBackground, StyleBackgroundColor, StyleBorder, StyleBorderRadius, StyleBorderSide,
+        StyleBoxShadow, StyleFontFamily, StyleFontSize, StyleLetterSpacing, StyleLineHeight,
+        StyleTextAlignmentHorz, StyleTextAlignmentVert, StyleTextColor, TextOverflowBehaviour,
+        TextOverflowBehaviourInner, TypedSize2D,
+    };
+    pub use daemon::{Daemon, DaemonCallback, DaemonId, TerminateDaemon};
+    pub use default_callbacks::StackCheckedPointer;
+    pub use dom::{
+        Callback, Dom, GlTextureCallback, IFrameCallback, NodeData, NodeType, On, Texture,
+        UpdateScreen,
     };
     pub use glium::glutin::{
         dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize},
-        VirtualKeyCode, ScanCode, Icon,
+        Icon, ScanCode, VirtualKeyCode,
     };
+    pub use images::{ImageId, ImageType};
     pub use rusttype::Font;
-    pub use app_resources::AppResources;
-    pub use daemon::{TerminateDaemon, DaemonId, DaemonCallback, Daemon};
-    pub use default_callbacks::StackCheckedPointer;
+    pub use text_cache::{TextCache, TextId};
     pub use text_layout::TextLayoutOptions;
+    pub use traits::{Layout, Modify};
+    pub use window::{
+        HidpiAdjustedBounds, MonitorIter, MouseMode, ReadOnlyWindow, RendererType, UpdateBehaviour,
+        UpdateMode, Window, WindowCreateOptions, WindowEvent, WindowId, WindowInfo,
+        WindowMonitorTarget,
+    };
+    pub use window_state::{DebugState, KeyboardState, MouseState, WindowState};
 
     #[cfg(feature = "logging")]
     pub use log::LevelFilter;
